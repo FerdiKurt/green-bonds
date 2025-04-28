@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/// @title GreenBond
+/// @title GreenBonds
 /// @notice A smart contract implementing a green bond to support climate and environmental projects
 /// @dev Uses AccessControl for role-based permissions
-contract GreenBond is AccessControl, ReentrancyGuard {
+contract GreenBonds is AccessControl, ReentrancyGuard {
     /// @notice Custom errors for better gas efficiency and clearer error messages
     error BondMatured();
     error BondNotMatured();
@@ -110,7 +110,7 @@ contract GreenBond is AccessControl, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ISSUER_ROLE, msg.sender);
     }
-
+    
     /// @notice Add a verifier who can validate impact reports
     /// @param verifier Address to be granted verifier role
     /// @dev Only callable by admin
