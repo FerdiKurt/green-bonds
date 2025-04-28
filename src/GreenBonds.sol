@@ -145,6 +145,30 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         
         emit BondPurchased(msg.sender, bondAmount, cost);
     }
+    
+    /// @notice Redeem bonds at maturity
+    /// @dev Transfers principal and any outstanding coupon payments to the investor
+    function redeemBonds() external nonReentrant {
+        if (block.timestamp < maturityDate) revert BondNotMatured();
+        if (bondHoldings[msg.sender] == 0) revert NoBondsToRedeem();
+        
+        uint256 bondAmount = bondHoldings[msg.sender];
+        uint256 redemptionValue = bondAmount * faceValue;
+        
+        // Claim any outstanding coupons first
+        uint256 claimableAmount = calculateClaimableCoupon(msg.sender);
+        uint256 totalPayment = redemptionValue + claimableAmount;
+        
+        // Update bond holdings before transfer to prevent reentrancy
+        bondHoldings[msg.sender] = 0;
+        lastCouponClaimDate[msg.sender] = 0;
+        
+        // Transfer redemption amount + final coupon
+        if (!paymentToken.transfer(msg.sender, totalPayment)) revert PaymentFailed();
+        
+        emit BondRedeemed(msg.sender, bondAmount, totalPayment);
+    }
+    
     /// @notice Add environmental impact report for the green project
     /// @param reportURI URI pointing to the full report document
     /// @param reportHash Hash of the report for verification
