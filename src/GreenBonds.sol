@@ -146,6 +146,45 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         emit BondPurchased(msg.sender, bondAmount, cost);
     }
     
+    /// @notice Calculate claimable coupon amount for an investor
+    /// @param investor The address of the investor
+    /// @return uint256 The amount of payment tokens claimable as coupon interest
+    /// @dev Returns 0 if investor has no bonds or no time has passed since last claim
+    function calculateClaimableCoupon(address investor) public view returns (uint256) {
+        if (bondHoldings[investor] == 0) return 0;
+        
+        uint256 lastClaim = lastCouponClaimDate[investor];
+        if (lastClaim == 0) return 0;
+        
+        // Calculate periods since last claim
+        uint256 timeSinceLastClaim = block.timestamp - lastClaim;
+        uint256 periods = timeSinceLastClaim / couponPeriod;
+        
+        if (periods == 0) return 0;
+        
+        // Calculate coupon amount
+        uint256 bondValue = bondHoldings[investor] * faceValue;
+        uint256 annualCoupon = bondValue * couponRate / 10000; // Convert basis points to percentage
+        uint256 couponPerPeriod = annualCoupon * couponPeriod / 365 days;
+        
+        return couponPerPeriod * periods;
+    }
+    
+    /// @notice Claim accumulated coupon payments
+    /// @dev Calculates claimable amount and transfers payment tokens to the investor
+    function claimCoupon() external nonReentrant {
+        uint256 claimableAmount = calculateClaimableCoupon(msg.sender);
+        if (claimableAmount == 0) revert NoCouponAvailable();
+        
+        // Update last claim date
+        lastCouponClaimDate[msg.sender] = block.timestamp;
+        
+        // Transfer coupon payment
+        if (!paymentToken.transfer(msg.sender, claimableAmount)) revert PaymentFailed();
+        
+        emit CouponClaimed(msg.sender, claimableAmount);
+    }
+    
     /// @notice Redeem bonds at maturity
     /// @dev Transfers principal and any outstanding coupon payments to the investor
     function redeemBonds() external nonReentrant {
