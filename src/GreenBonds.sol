@@ -124,4 +124,25 @@ contract GreenBond is AccessControl, ReentrancyGuard {
     function addGreenCertification(string memory certification) external onlyRole(ISSUER_ROLE) {
         greenCertifications.push(certification);
     }
+    
+    /// @notice Purchase bonds with payment tokens
+    /// @param bondAmount The number of bonds to purchase
+    /// @dev Transfers payment tokens from buyer to contract
+    function purchaseBonds(uint256 bondAmount) external nonReentrant {
+        if (block.timestamp >= maturityDate) revert BondMatured();
+        if (bondAmount == 0) revert InvalidBondAmount();
+        if (bondAmount > availableSupply) revert InsufficientBondsAvailable();
+        
+        uint256 cost = bondAmount * faceValue;
+        
+        // Transfer payment tokens from buyer to contract
+        if (!paymentToken.transferFrom(msg.sender, address(this), cost)) revert PaymentFailed();
+        
+        // Update bond holdings
+        bondHoldings[msg.sender] = bondHoldings[msg.sender] + bondAmount;
+        availableSupply = availableSupply - bondAmount;
+        lastCouponClaimDate[msg.sender] = block.timestamp;
+        
+        emit BondPurchased(msg.sender, bondAmount, cost);
+    }
 }
