@@ -253,4 +253,13 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         return greenCertifications.length;
     }
     
+    /// @notice Emergency withdraw function for issuer (time-locked)
+    /// @param amount Amount of payment tokens to withdraw
+    /// @dev Protected by a 30-day timelock to prevent immediate fund withdrawal
+    function issuerEmergencyWithdraw(uint256 amount) external onlyRole(ISSUER_ROLE) {
+        if (block.timestamp < issuanceDate + 30 days) revert TooEarlyForWithdrawal();
+        if (amount > paymentToken.balanceOf(address(this))) revert InsufficientFunds();
+        
+        if (!paymentToken.transfer(msg.sender, amount)) revert PaymentFailed();
+    }
 }
