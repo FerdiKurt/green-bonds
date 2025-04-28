@@ -145,4 +145,36 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         
         emit BondPurchased(msg.sender, bondAmount, cost);
     }
+    /// @notice Add environmental impact report for the green project
+    /// @param reportURI URI pointing to the full report document
+    /// @param reportHash Hash of the report for verification
+    /// @param metrics Summary of key environmental metrics
+    /// @dev Only callable by issuer
+    function addImpactReport(string memory reportURI, string memory reportHash, string memory metrics) 
+        external 
+        onlyRole(ISSUER_ROLE) 
+    {
+        ImpactReport memory newReport = ImpactReport({
+            reportURI: reportURI,
+            reportHash: reportHash,
+            timestamp: block.timestamp,
+            impactMetrics: metrics,
+            verified: false
+        });
+        
+        impactReports.push(newReport);
+        emit ImpactReportAdded(impactReports.length - 1, reportURI);
+    }
+    
+    /// @notice Verify an environmental impact report
+    /// @param reportId ID of the report to verify
+    /// @dev Only callable by addresses with verifier role
+    function verifyImpactReport(uint256 reportId) external onlyRole(VERIFIER_ROLE) {
+        if (reportId >= impactReports.length) revert ReportDoesNotExist();
+        if (impactReports[reportId].verified) revert ReportAlreadyVerified();
+        
+        impactReports[reportId].verified = true;
+        emit ImpactReportVerified(reportId);
+    }
+    
 }
