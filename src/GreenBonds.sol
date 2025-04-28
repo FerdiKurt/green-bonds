@@ -110,4 +110,18 @@ contract GreenBond is AccessControl, ReentrancyGuard {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ISSUER_ROLE, msg.sender);
     }
+
+    /// @notice Add a verifier who can validate impact reports
+    /// @param verifier Address to be granted verifier role
+    /// @dev Only callable by admin
+    function addVerifier(address verifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(VERIFIER_ROLE, verifier);
+    }
+    
+    /// @notice Add a green certification
+    /// @param certification String describing the certification (e.g., "LEED Gold")
+    /// @dev Only callable by issuer
+    function addGreenCertification(string memory certification) external onlyRole(ISSUER_ROLE) {
+        greenCertifications.push(certification);
+    }
 }
