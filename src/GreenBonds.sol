@@ -240,4 +240,17 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         emit ImpactReportVerified(reportId);
     }
     
+    
+    /// @notice Get the number of impact reports
+    /// @return uint256 Total count of impact reports
+    function getImpactReportCount() external view returns (uint256) {
+        return impactReports.length;
+    }
+    
+    /// @notice Get the number of green certifications
+    /// @return uint256 Total count of green certifications
+    function getGreenCertificationCount() external view returns (uint256) {
+        return greenCertifications.length;
+    }
+    
 }
