@@ -240,6 +240,13 @@ contract GreenBonds is AccessControl, ReentrancyGuard {
         emit ImpactReportVerified(reportId);
     }
     
+    /// @notice Record fund allocation to specific project components
+    /// @param projectComponent Name of the project component receiving funds
+    /// @param amount Amount of payment tokens allocated
+    /// @dev Emits an event for transparency but doesn't move actual tokens
+    function allocateFunds(string memory projectComponent, uint256 amount) external onlyRole(ISSUER_ROLE) {
+        emit FundsAllocated(projectComponent, amount);
+    }
     
     /// @notice Get the number of impact reports
     /// @return uint256 Total count of impact reports
