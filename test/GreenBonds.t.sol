@@ -384,6 +384,22 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_AddGreenCertification() public {
+        string memory certification = "LEED Gold";
+        
+        vm.startPrank(issuer);
+        
+        // Add certification
+        greenBonds.addGreenCertification(certification);
+        
+        // Verify certification was added
+        assertEq(greenBonds.getGreenCertificationCount(), 1);
+        assertEq(greenBonds.greenCertifications(0), certification);
+        
+        vm.stopPrank();
+    }
+    
+    
     function test_IssuerEmergencyWithdraw() public {
         uint256 withdrawAmount = 1000 * 10**18;
         
