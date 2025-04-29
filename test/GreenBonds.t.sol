@@ -159,4 +159,78 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_CalculateClaimableCoupon() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Advance time by one coupon period
+        vm.warp(block.timestamp + couponPeriod);
+        
+        // Calculate coupon
+        uint256 bondValue = bondAmount * faceValue;
+        uint256 annualCoupon = bondValue * couponRate / 10000; // Convert basis points to percentage
+        uint256 expectedCoupon = annualCoupon * couponPeriod / 365 days;
+        
+        assertEq(greenBonds.calculateClaimableCoupon(investor1), expectedCoupon);
+        
+        vm.stopPrank();
+    }
+    
+    function test_ClaimCoupon() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Advance time by one coupon period
+        vm.warp(block.timestamp + couponPeriod);
+        
+        // Calculate expected coupon
+        uint256 bondValue = bondAmount * faceValue;
+        uint256 annualCoupon = bondValue * couponRate / 10000; // Convert basis points to percentage
+        uint256 expectedCoupon = annualCoupon * couponPeriod / 365 days;
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit CouponClaimed(investor1, expectedCoupon);
+        
+        // Claim coupon
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        greenBonds.claimCoupon();
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        
+        // Verify state changes
+        assertEq(balanceAfter - balanceBefore, expectedCoupon);
+        assertEq(greenBonds.lastCouponClaimDate(investor1), block.timestamp);
+        
+        vm.stopPrank();
+    }
+    
+    function test_ClaimCoupon_NoCouponAvailable() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Attempt to claim coupon immediately (no time passed)
+        vm.expectRevert(GreenBonds.NoCouponAvailable.selector);
+        greenBonds.claimCoupon();
+        
+        vm.stopPrank();
+    }
+    
 }
