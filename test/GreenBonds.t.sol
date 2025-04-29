@@ -433,4 +433,78 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_MultipleCouponClaims() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Advance time by one coupon period and claim
+        vm.warp(block.timestamp + couponPeriod);
+        greenBonds.claimCoupon();
+        
+        // Advance time by another coupon period and claim again
+        vm.warp(block.timestamp + couponPeriod);
+        
+        // Calculate expected coupon for second period
+        uint256 bondValue = bondAmount * faceValue;
+        uint256 annualCoupon = bondValue * couponRate / 10000;
+        uint256 expectedCoupon = annualCoupon * couponPeriod / 365 days;
+        
+        // Claim second coupon
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        greenBonds.claimCoupon();
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        
+        // Verify correct coupon amount received
+        assertEq(balanceAfter - balanceBefore, expectedCoupon);
+        
+        vm.stopPrank();
+    }
+    
+    function test_MultipleInvestors() public {
+        // Investor 1 buys 2 bonds
+        vm.startPrank(investor1);
+        paymentToken.approve(address(greenBonds), 2 * faceValue);
+        greenBonds.purchaseBonds(2);
+        vm.stopPrank();
+        
+        // Investor 2 buys 3 bonds
+        vm.startPrank(investor2);
+        paymentToken.approve(address(greenBonds), 3 * faceValue);
+        greenBonds.purchaseBonds(3);
+        vm.stopPrank();
+        
+        // Verify bond holdings
+        assertEq(greenBonds.bondHoldings(investor1), 2);
+        assertEq(greenBonds.bondHoldings(investor2), 3);
+        assertEq(greenBonds.availableSupply(), totalSupply - 5);
+        
+        // Advance time by one coupon period
+        vm.warp(block.timestamp + couponPeriod);
+        
+        // Calculate expected coupons
+        uint256 expectedCoupon1 = (2 * faceValue * couponRate / 10000) * couponPeriod / 365 days;
+        uint256 expectedCoupon2 = (3 * faceValue * couponRate / 10000) * couponPeriod / 365 days;
+        
+        // Investor 1 claims coupon
+        vm.startPrank(investor1);
+        uint256 balance1Before = paymentToken.balanceOf(investor1);
+        greenBonds.claimCoupon();
+        uint256 balance1After = paymentToken.balanceOf(investor1);
+        assertEq(balance1After - balance1Before, expectedCoupon1);
+        vm.stopPrank();
+        
+        // Investor 2 claims coupon
+        vm.startPrank(investor2);
+        uint256 balance2Before = paymentToken.balanceOf(investor2);
+        greenBonds.claimCoupon();
+        uint256 balance2After = paymentToken.balanceOf(investor2);
+        assertEq(balance2After - balance2Before, expectedCoupon2);
+        vm.stopPrank();
+    }
 }
