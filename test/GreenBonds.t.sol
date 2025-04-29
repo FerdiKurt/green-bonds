@@ -399,6 +399,21 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_AllocateFunds() public {
+        string memory component = "Solar Panel Installation";
+        uint256 amount = 500 * 10**18;
+        
+        vm.startPrank(issuer);
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit FundsAllocated(component, amount);
+        
+        // Allocate funds
+        greenBonds.allocateFunds(component, amount);
+        
+        vm.stopPrank();
+    }
     
     function test_IssuerEmergencyWithdraw() public {
         uint256 withdrawAmount = 1000 * 10**18;
