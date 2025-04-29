@@ -383,4 +383,54 @@ contract GreenBondsTest is Test {
         
         vm.stopPrank();
     }
+    
+    function test_IssuerEmergencyWithdraw() public {
+        uint256 withdrawAmount = 1000 * 10**18;
+        
+        // First, have an investor purchase bonds to get funds in the contract
+        vm.startPrank(investor1);
+        paymentToken.approve(address(greenBonds), withdrawAmount);
+        greenBonds.purchaseBonds(withdrawAmount / faceValue);
+        vm.stopPrank();
+        
+        vm.startPrank(issuer);
+        
+        // Attempt to withdraw too early
+        vm.expectRevert(GreenBonds.TooEarlyForWithdrawal.selector);
+        greenBonds.issuerEmergencyWithdraw(withdrawAmount);
+        
+        // Advance time beyond 30-day timelock
+        vm.warp(block.timestamp + 31 days);
+        
+        // Now withdraw should succeed
+        uint256 balanceBefore = paymentToken.balanceOf(issuer);
+        greenBonds.issuerEmergencyWithdraw(withdrawAmount);
+        uint256 balanceAfter = paymentToken.balanceOf(issuer);
+        
+        // Verify state changes
+        assertEq(balanceAfter - balanceBefore, withdrawAmount);
+        
+        vm.stopPrank();
+    }
+    
+    function test_IssuerEmergencyWithdraw_InsufficientFunds() public {
+        // First, have an investor purchase 1 bond
+        vm.startPrank(investor1);
+        paymentToken.approve(address(greenBonds), faceValue);
+        greenBonds.purchaseBonds(1);
+        vm.stopPrank();
+        
+        vm.startPrank(issuer);
+        
+        // Advance time beyond 30-day timelock
+        vm.warp(block.timestamp + 31 days);
+        
+        // Attempt to withdraw more than available
+        uint256 excessiveAmount = faceValue * 2;
+        vm.expectRevert(GreenBonds.InsufficientFunds.selector);
+        greenBonds.issuerEmergencyWithdraw(excessiveAmount);
+        
+        vm.stopPrank();
+    }
+    
 }
