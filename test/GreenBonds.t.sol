@@ -89,5 +89,74 @@ contract GreenBondsTest is Test {
         assertTrue(greenBonds.hasRole(greenBonds.VERIFIER_ROLE(), verifier));
     }
     
-
+    function test_PurchaseBonds() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Approve tokens for purchase
+        paymentToken.approve(address(greenBonds), cost);
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit BondPurchased(investor1, bondAmount, cost);
+        
+        // Purchase bonds
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Check state changes
+        assertEq(greenBonds.bondHoldings(investor1), bondAmount);
+        assertEq(greenBonds.availableSupply(), totalSupply - bondAmount);
+        assertEq(greenBonds.lastCouponClaimDate(investor1), block.timestamp);
+        assertEq(paymentToken.balanceOf(address(greenBonds)), cost);
+        
+        vm.stopPrank();
+    }
+    
+    function test_PurchaseBonds_InsufficientSupply() public {
+        uint256 bondAmount = totalSupply + 1;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Approve tokens for purchase
+        paymentToken.approve(address(greenBonds), cost);
+        
+        // Attempt to purchase more bonds than available
+        vm.expectRevert(GreenBonds.InsufficientBondsAvailable.selector);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        vm.stopPrank();
+    }
+    
+    function test_PurchaseBonds_ZeroAmount() public {
+        vm.startPrank(investor1);
+        
+        // Attempt to purchase zero bonds
+        vm.expectRevert(GreenBonds.InvalidBondAmount.selector);
+        greenBonds.purchaseBonds(0);
+        
+        vm.stopPrank();
+    }
+    
+    function test_PurchaseBonds_AfterMaturity() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Approve tokens for purchase
+        paymentToken.approve(address(greenBonds), cost);
+        
+        // Warp to after maturity
+        vm.warp(block.timestamp + maturityPeriod + 1);
+        
+        // Attempt to purchase bonds after maturity
+        vm.expectRevert(GreenBonds.BondMatured.selector);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        vm.stopPrank();
+    }
+    
 }
