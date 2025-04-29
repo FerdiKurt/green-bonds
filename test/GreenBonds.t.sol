@@ -233,4 +233,78 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_RedeemBonds() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        // Setup: We need to ensure the contract has enough tokens to pay out both principal and interest
+        // Mint extra tokens to admin and send to contract to cover interest payments
+        vm.startPrank(admin);
+        uint256 extraTokens = bondAmount * faceValue; // Extra tokens to cover interest
+        paymentToken.transfer(address(greenBonds), extraTokens);
+        vm.stopPrank();
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Advance time to exactly maturity (avoids excessive interest calculation)
+        vm.warp(greenBonds.maturityDate());
+        
+        // Calculate expected redemption value (principal + final coupon)
+        uint256 principalAmount = bondAmount * faceValue;
+        
+        // Calculate coupon amount matching the contract's calculation
+        uint256 claimableCoupon = greenBonds.calculateClaimableCoupon(investor1);
+        uint256 expectedTotal = principalAmount + claimableCoupon;
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit BondRedeemed(investor1, bondAmount, expectedTotal);
+        
+        // Redeem bonds
+        uint256 balanceBefore = paymentToken.balanceOf(investor1);
+        greenBonds.redeemBonds();
+        uint256 balanceAfter = paymentToken.balanceOf(investor1);
+        
+        // Verify state changes
+        assertEq(balanceAfter - balanceBefore, expectedTotal);
+        assertEq(greenBonds.bondHoldings(investor1), 0);
+        assertEq(greenBonds.lastCouponClaimDate(investor1), 0);
+        
+        vm.stopPrank();
+    }
+    
+    function test_RedeemBonds_BeforeMaturity() public {
+        uint256 bondAmount = 2;
+        uint256 cost = bondAmount * faceValue;
+        
+        vm.startPrank(investor1);
+        
+        // Purchase bonds
+        paymentToken.approve(address(greenBonds), cost);
+        greenBonds.purchaseBonds(bondAmount);
+        
+        // Attempt to redeem before maturity
+        vm.expectRevert(GreenBonds.BondNotMatured.selector);
+        greenBonds.redeemBonds();
+        
+        vm.stopPrank();
+    }
+    
+    function test_RedeemBonds_NoBonds() public {
+        vm.startPrank(investor1);
+        
+        // Advance time to maturity
+        vm.warp(block.timestamp + maturityPeriod + 1);
+        
+        // Attempt to redeem with no bonds
+        vm.expectRevert(GreenBonds.NoBondsToRedeem.selector);
+        greenBonds.redeemBonds();
+        
+        vm.stopPrank();
+    }
+    
 }
