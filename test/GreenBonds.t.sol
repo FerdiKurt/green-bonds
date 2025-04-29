@@ -307,4 +307,80 @@ contract GreenBondsTest is Test {
         vm.stopPrank();
     }
     
+    function test_AddImpactReport() public {
+        string memory reportURI = "https://example.com/report1";
+        string memory reportHash = "0x1234567890abcdef";
+        string memory metrics = "50 tons CO2 reduced";
+        
+        vm.startPrank(issuer);
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit ImpactReportAdded(0, reportURI);
+        
+        // Add impact report
+        greenBonds.addImpactReport(reportURI, reportHash, metrics);
+        
+        // Verify report was added
+        assertEq(greenBonds.getImpactReportCount(), 1);
+        
+        // Get report details
+        (string memory storedURI, string memory storedHash, uint256 timestamp, string memory storedMetrics, bool verified) = greenBonds.impactReports(0);
+        
+        assertEq(storedURI, reportURI);
+        assertEq(storedHash, reportHash);
+        assertEq(storedMetrics, metrics);
+        assertEq(verified, false);
+        assertEq(timestamp, block.timestamp);
+        
+        vm.stopPrank();
+    }
+    
+    function test_VerifyImpactReport() public {
+        // First add a report
+        vm.startPrank(issuer);
+        greenBonds.addImpactReport("https://example.com/report1", "0x1234567890abcdef", "50 tons CO2 reduced");
+        vm.stopPrank();
+        
+        vm.startPrank(verifier);
+        
+        // Check event emission
+        vm.expectEmit(true, false, false, true);
+        emit ImpactReportVerified(0);
+        
+        // Verify the report
+        greenBonds.verifyImpactReport(0);
+        
+        // Check report is now verified
+        (,,,, bool verified) = greenBonds.impactReports(0);
+        assertTrue(verified);
+        
+        vm.stopPrank();
+    }
+    
+    function test_VerifyImpactReport_DoesNotExist() public {
+        vm.startPrank(verifier);
+        
+        // Attempt to verify non-existent report
+        vm.expectRevert(GreenBonds.ReportDoesNotExist.selector);
+        greenBonds.verifyImpactReport(0);
+        
+        vm.stopPrank();
+    }
+    
+    function test_VerifyImpactReport_AlreadyVerified() public {
+        // First add and verify a report
+        vm.startPrank(issuer);
+        greenBonds.addImpactReport("https://example.com/report1", "0x1234567890abcdef", "50 tons CO2 reduced");
+        vm.stopPrank();
+        
+        vm.startPrank(verifier);
+        greenBonds.verifyImpactReport(0);
+        
+        // Attempt to verify again
+        vm.expectRevert(GreenBonds.ReportAlreadyVerified.selector);
+        greenBonds.verifyImpactReport(0);
+        
+        vm.stopPrank();
+    }
 }
