@@ -154,6 +154,22 @@ greenBonds.verifyImpactReport(0);
 - `addVerifier(address verifier)`: Add a new verifier
 - `issuerEmergencyWithdraw(uint256 amount)`: Emergency fund withdrawal (time-locked)
 
+## Future Enhancements
+- Timelock mechanism for emergency withdrawals, potentially using a separate timelock contract
+- A circuit breaker/pause functionality to halt operations in case of emergencies
+- A multisig wallet for the admin role to prevent single points of failure
+- More granular roles beyond the current ISSUER_ROLE and VERIFIER_ROLE
+- Rate limiting for bond purchases to prevent market manipulation
+- Support for secondary market trading by implementing an ERC-20 or ERC-1155 interface for the bonds
+- Graduated impact verification tiers rather 
+- Automatic coupon payments 
+- Oracle integration for real-world impact verification data
+- Support for multiple payment tokens (stable coins)
+- On-chain voting for bondholders on specific project decisions
+- Detailed fund tracking with milestone-based releases
+- Slashing conditions if green metrics aren't met
+- Emissions data verification through trusted oracles
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
