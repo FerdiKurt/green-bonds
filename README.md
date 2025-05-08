@@ -161,7 +161,6 @@ greenBonds.verifyImpactReport(0);
 - More granular roles beyond the current ISSUER_ROLE and VERIFIER_ROLE
 - Rate limiting for bond purchases to prevent market manipulation
 - Support for secondary market trading by implementing an ERC-20 or ERC-1155 interface for the bonds
-- Graduated impact verification tiers rather 
 - Automatic coupon payments 
 - Oracle integration for real-world impact verification data
 - Support for multiple payment tokens (stable coins)
